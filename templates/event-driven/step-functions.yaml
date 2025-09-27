@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Step Functions workflow triggered by Lambda
+
+Resources:
+  StateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: "*"
+
+  StateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: MyAppWorkflow
+      RoleArn: !GetAtt StateMachineRole.Arn
+      DefinitionString: |
+        {
+          "Comment": "Image processing workflow",
+          "StartAt": "ValidateImage",
+          "States": {
+            "ValidateImage": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:REGION:ACCOUNT_ID:function:ValidateImage",
+              "Next": "TransformImage"
+            },
+            "TransformImage": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:REGION:ACCOUNT_ID:function:TransformImage",
+              "End": true
+            }
+          }
+        }

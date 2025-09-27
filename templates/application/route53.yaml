@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Route 53 hosted zone and record set
+
+Parameters:
+  DomainName:
+    Type: String
+    Description: Root domain name (e.g., example.com)
+  CloudFrontDNS:
+    Type: String
+    Description: CloudFront distribution DNS name
+
+Resources:
+  HostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: !Ref DomainName
+
+  RecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Ref DomainName
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !Ref CloudFrontDNS
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront zone ID

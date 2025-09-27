@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EventBridge rule for triggering Lambda
+
+Parameters:
+  LambdaFunctionArn:
+    Type: String
+
+Resources:
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: MyAppEventRule
+      EventPattern:
+        source:
+          - "aws.s3"
+        detail-type:
+          - "Object Created"
+      Targets:
+        - Arn: !Ref LambdaFunctionArn
+          Id: TargetFunction

@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: RDS instance for application database
+
+Parameters:
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+  DBName:
+    Type: String
+    Default: myappdb
+  DBUsername:
+    Type: String
+    Default: admin
+  DBPassword:
+    Type: String
+    NoEcho: true
+  DBSubnetGroupName:
+    Type: String
+  VPCSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+
+Resources:
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: myapp-db
+      DBName: !Ref DBName
+      Engine: postgres
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: 20
+      StorageType: gp2
+      PubliclyAccessible: false
+      MultiAZ: false
+      VPCSecurityGroups:
+        - !Ref VPCSecurityGroupId
+      DBSubnetGroupName: !Ref DBSubnetGroupName
+      BackupRetentionPeriod: 7
+      Tags:
+        - Key: Name
+          Value: MyApp-RDS
