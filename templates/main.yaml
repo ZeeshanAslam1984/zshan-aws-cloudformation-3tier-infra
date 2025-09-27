@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Master CloudFormation template for MyApp infrastructure
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+  DBUsername:
+    Type: String
+    Default: admin
+  DBPassword:
+    Type: String
+    NoEcho: true
+
+Resources:
+
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./templates/network/network.yaml
+      Parameters:
+        VpcCIDR: 10.0.0.0/16
+        PublicSubnet1CIDR: 10.0.1.0/24
+        PublicSubnet2CIDR: 10.0.2.0/24
+        PrivateSubnet1CIDR: 10.0.3.0/24
+        PrivateSubnet2CIDR: 10.0.4.0/24
+
+  ComputeStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./templates/compute/ecs-service.yaml
+      Parameters:
+        ClusterName: MyApp-ECS-Cluster
+        SubnetIds:
+          - !GetAtt NetworkStack.Outputs.PublicSubnet1Id
+          - !GetAtt NetworkStack.Outputs.PublicSubnet2Id
+        SecurityGroupId: !GetAtt NetworkStack.Outputs.ECSServiceSecurityGroupId
+
+  DatabaseStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./templates/database/rds.yaml
+      Parameters:
+        DBUsername: !Ref DBUsername
+        DBPassword: !Ref DBPassword
+        DBSubnetGroupName: MyApp-DBSubnetGroup
+        VPCSecurityGroupId: !GetAtt NetworkStack.Outputs.RDSSecurityGroupId
+
+  ConfigStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./templates/config-management/secrets-manager.yaml
+      Parameters:
+        AppName: MyDotNetApp
+        Environment: !Ref Environment
+        DBUsername: !Ref DBUsername
+        DBPassword: !Ref DBPassword
+
+  EventDrivenStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./templates/event-driven/s3-events.yaml
+
+  ApplicationStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./templates/application/cloudfront.yaml
+      Parameters:
+        S3BucketDomainName: !GetAtt EventDrivenStack.Outputs.S3BucketName
+
+Outputs:
+  VPCId:
+    Value: !GetAtt NetworkStack.Outputs.VPCId
+  PublicSubnet1Id:
+    Value: !GetAtt NetworkStack.Outputs.PublicSubnet1Id
+  PublicSubnet2Id:
+    Value: !GetAtt NetworkStack.Outputs.PublicSubnet2Id
+  PrivateSubnet1Id:
+    Value: !GetAtt NetworkStack.Outputs.PrivateSubnet1Id
+  PrivateSubnet2Id:
+    Value: !GetAtt NetworkStack.Outputs.PrivateSubnet2Id
+  ArchitectureStatus:
+    Value: "All stacks deployed successfully"
